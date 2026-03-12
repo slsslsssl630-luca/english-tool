@@ -16,7 +16,6 @@ export default async function handler(req, res) {
   try {
     const query = words.join('\n');
     const salt  = Date.now().toString();
-    // Must use Buffer to handle Chinese/unicode correctly
     const signStr = appId + query + salt + key;
     const sign = crypto.createHash('md5').update(Buffer.from(signStr, 'utf8')).digest('hex');
 
