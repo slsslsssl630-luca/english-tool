@@ -5,6 +5,7 @@ export default function Home() {
   const [tab, setTab] = useState('translate');
   const [inputText, setInputText] = useState('');
   const [segments, setSegments] = useState([]);
+  const [fullZh, setFullZh] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [hoveredSeg, setHoveredSeg] = useState(null);
@@ -40,7 +41,7 @@ export default function Home() {
   // ── TRANSLATE ──
   async function doTranslate() {
     if (!inputText.trim()) return;
-    setLoading(true); setError(''); setSegments([]);
+    setLoading(true); setError(''); setSegments([]); setFullZh('');
     stopSpeech(); setTooltipSeg(null);
     try {
       const res = await fetch('/api/translate', {
@@ -51,6 +52,7 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok || data.error) throw new Error(data.error || '翻译失败');
       setSegments(data.segments.map((s, i) => ({ id: i, en: s.en, zh: s.zh })));
+      if (data.fullZh) setFullZh(data.fullZh);
     } catch(e) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -402,17 +404,7 @@ export default function Home() {
                   <div className="bi-sep" />
                   <div className="bi-label">中文译文</div>
                   <div className="bi-para">
-                    {segments.map((seg, si) => {
-                      const isActive = activeSegId === si;
-                      const cls = `seg${isActive ? (speakingSeg===si ? ' hl-speak' : ' hl-hover') : ''}`;
-                      return (
-                        <span key={si} className={cls}
-                          onMouseEnter={() => setHoveredSeg(si)}
-                          onMouseLeave={() => setHoveredSeg(null)}
-                          onClick={e => { e.stopPropagation(); setTooltipSeg(tooltipSeg===si?null:si); }}
-                        >{seg.zh.join('')}</span>
-                      );
-                    })}
+                    {fullZh || segments.map(s => s.zh.join('')).join('')}
                   </div>
                 </div>
               )}
