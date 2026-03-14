@@ -219,7 +219,7 @@ export default function Home() {
         }
         body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
 
-        .nav { background: var(ffd700); display: flex; align-items: center; height: 48px; padding: 0 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+        .nav { background: 111111; display: flex; align-items: center; height: 48px; padding: 0 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
         .nav-logo { color: #fff; font-weight: 600; font-size: 15px; margin-right: 24px; display: flex; align-items: center; gap: 8px; }
         .nav-logo small { opacity: .75; font-weight: 400; font-size: 12px; }
         .nav-tabs { display: flex; height: 100%; }
