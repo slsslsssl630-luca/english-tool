@@ -198,7 +198,7 @@ export default function Home() {
   return (
     <>
       <Head>
-        <title>Luca学英语</title>
+        <title>英语学习助手</title>
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
       </Head>
@@ -219,7 +219,7 @@ export default function Home() {
         }
         body { font-family: 'Inter', 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; font-size: 14px; line-height: 1.5; }
 
-        .nav { background: 111111; display: flex; align-items: center; height: 48px; padding: 0 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
+        .nav { background: var(--blue); display: flex; align-items: center; height: 48px; padding: 0 20px; position: sticky; top: 0; z-index: 100; box-shadow: 0 2px 8px rgba(0,0,0,.2); }
         .nav-logo { color: #fff; font-weight: 600; font-size: 15px; margin-right: 24px; display: flex; align-items: center; gap: 8px; }
         .nav-logo small { opacity: .75; font-weight: 400; font-size: 12px; }
         .nav-tabs { display: flex; height: 100%; }
@@ -328,7 +328,7 @@ export default function Home() {
       `}</style>
 
       <nav className="nav">
-        <div className="nav-logo">📖 Luca学英语 <small>English Learning Tool</small></div>
+        <div className="nav-logo">📖 英语助手 <small>English Learning Tool</small></div>
         <div className="nav-tabs">
           {[['translate','翻译对照'],['vocab','收藏库'],['walk','🎧 走路听']].map(([id,label]) => (
             <button key={id} className={`nav-tab${tab===id?' active':''}`} onClick={() => setTab(id)}>{label}</button>
@@ -404,17 +404,21 @@ export default function Home() {
                   <div className="bi-sep" />
                   <div className="bi-label">中文译文</div>
                   <div className="bi-para">
-                    {segments.map((seg, si) => {
-                      const isActive = activeSegId === si;
-                      const cls = `seg${isActive ? (speakingSeg===si ? ' hl-speak' : ' hl-hover') : ''}`;
-                      return (
-                        <span key={si} className={cls}
-                          onMouseEnter={() => setHoveredSeg(si)}
-                          onMouseLeave={() => setHoveredSeg(null)}
-                          onClick={e => { e.stopPropagation(); setTooltipSeg(tooltipSeg===si?null:si); }}
-                        >{seg.zh.join('')}</span>
-                      );
-                    })}
+                    {fullZh ? (
+                      <span style={{color:'var(--text)'}}>{fullZh}</span>
+                    ) : (
+                      segments.map((seg, si) => {
+                        const isActive = activeSegId === si;
+                        const cls = `seg${isActive ? (speakingSeg===si ? ' hl-speak' : ' hl-hover') : ''}`;
+                        return (
+                          <span key={si} className={cls}
+                            onMouseEnter={() => setHoveredSeg(si)}
+                            onMouseLeave={() => setHoveredSeg(null)}
+                            onClick={e => { e.stopPropagation(); setTooltipSeg(tooltipSeg===si?null:si); }}
+                          >{seg.zh.join('')}</span>
+                        );
+                      })
+                    )}
                   </div>
                 </div>
               )}
