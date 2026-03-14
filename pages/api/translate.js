@@ -10,7 +10,6 @@ async function baiduTranslate(text, from = 'en', to = 'zh') {
   }
 
   const salt = Date.now().toString();
-  // 签名规则: MD5(appid + q + salt + 密钥)
   const sign = crypto
     .createHash('md5')
     .update(appId + text + salt + secretKey)
@@ -42,33 +41,39 @@ async function baiduTranslate(text, from = 'en', to = 'zh') {
   return data.trans_result.map((item) => item.dst).join('');
 }
 
-// ========== 分词（用于 hover 高亮）==========
-function toWordGroups(text) {
-  const words = text.match(/[a-zA-Z'''\-]+/g) || [];
-  const groups = [];
-  let i = 0;
-  while (i < words.length) {
-    // 2个词一组，更自然
-    if (i + 1 < words.length && /^[a-z]/.test(words[i + 1])) {
-      groups.push(words[i] + ' ' + words[i + 1]);
-      i += 2;
-    } else {
-      groups.push(words[i]);
-      i++;
-    }
-  }
-  return groups;
+// ========== 分词（单词维度，不合并）==========
+function toWords(text) {
+  // 只提取英文单词，每个单词独立
+  return text.match(/[a-zA-Z'''\-]+/g) || [];
 }
 
-// ========== 批量翻译词组（带延迟防限流）==========
-async function translateGroups(groups) {
+// ========== 批量翻译单词（一次请求翻译多个，用换行分隔）==========
+async function translateWords(words) {
+  if (words.length === 0) return [];
+
+  // 百度翻译支持用换行符分隔多个词，一次请求翻译
+  // 分批处理，每批最多 30 个词，避免请求太大
+  const batchSize = 30;
   const segments = [];
 
-  for (const g of groups) {
-    const zh = await baiduTranslate(g);
-    segments.push({ en: [g], zh: [zh] });
-    // 百度 API 免费版 QPS 限制，加延迟
-    await new Promise((r) => setTimeout(r, 120));
+  for (let i = 0; i < words.length; i += batchSize) {
+    const batch = words.slice(i, i + batchSize);
+    const batchText = batch.join('\n');
+    
+    const zhText = await baiduTranslate(batchText);
+    const zhWords = zhText.split('\n');
+
+    for (let j = 0; j < batch.length; j++) {
+      segments.push({
+        en: [batch[j]],
+        zh: [zhWords[j] || batch[j]]
+      });
+    }
+
+    // 批次间加延迟
+    if (i + batchSize < words.length) {
+      await new Promise((r) => setTimeout(r, 150));
+    }
   }
 
   return segments;
@@ -86,13 +91,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. 全文翻译（整段，更通顺）
+    // 1. 全文翻译（整段，通顺）
     const fullZh = await baiduTranslate(text.trim());
     console.log('✅ 百度翻译全文成功');
 
-    // 2. 词组级翻译（hover 高亮用）
-    const groups = toWordGroups(text);
-    const segments = await translateGroups(groups);
+    // 2. 单词级翻译（hover 高亮用）
+    const words = toWords(text);
+    const segments = await translateWords(words);
 
     return res.status(200).json({ 
       fullZh, 
