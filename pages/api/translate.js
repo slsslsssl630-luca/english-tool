@@ -1,6 +1,6 @@
 import crypto from 'crypto';
 
-// ========== 百度翻译 API（正确方式）==========
+// ========== 百度翻译 API ==========
 async function baiduTranslate(text, from = 'en', to = 'zh') {
   const appId = process.env.BAIDU_APP_ID;
   const secretKey = process.env.BAIDU_SECRET_KEY;
@@ -42,15 +42,6 @@ async function baiduTranslate(text, from = 'en', to = 'zh') {
   return data.trans_result.map((item) => item.dst).join('');
 }
 
-// ========== Google 翻译（备用）==========
-async function googleTranslate(text, to = 'zh-CN') {
-  const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=<span class="katex-error" title="ParseError: KaTeX parse error: Expected &#x27;EOF&#x27;, got &#x27;&amp;&#x27; at position 5: {to}&amp;̲dt=t&amp;q=" style="color:#cc0000">{to}&amp;dt=t&amp;q=</span>{encodeURIComponent(text)}`;
-  const r = await fetch(url, { headers: { 'User-Agent': 'Mozilla/5.0' } });
-  if (!r.ok) return text;
-  const data = await r.json();
-  return data[0].map((item) => item[0]).join('');
-}
-
 // ========== 分词（用于 hover 高亮）==========
 function toWordGroups(text) {
   const words = text.match(/[a-zA-Z'''\-]+/g) || [];
@@ -72,24 +63,12 @@ function toWordGroups(text) {
 // ========== 批量翻译词组（带延迟防限流）==========
 async function translateGroups(groups) {
   const segments = [];
-  const hasBaiduApi = process.env.BAIDU_APP_ID && process.env.BAIDU_SECRET_KEY;
 
   for (const g of groups) {
-    let zh;
-    try {
-      if (hasBaiduApi) {
-        zh = await baiduTranslate(g);
-        // 百度 API 免费版 QPS 限制，加延迟
-        await new Promise((r) => setTimeout(r, 120));
-      } else {
-        zh = await googleTranslate(g);
-      }
-    } catch (e) {
-      // 百度失败就用 Google
-      console.warn('词组翻译失败:', g, e.message);
-      zh = await googleTranslate(g);
-    }
+    const zh = await baiduTranslate(g);
     segments.push({ en: [g], zh: [zh] });
+    // 百度 API 免费版 QPS 限制，加延迟
+    await new Promise((r) => setTimeout(r, 120));
   }
 
   return segments;
@@ -106,24 +85,10 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: '请输入要翻译的文本' });
   }
 
-  const hasBaiduApi = process.env.BAIDU_APP_ID && process.env.BAIDU_SECRET_KEY;
-
   try {
     // 1. 全文翻译（整段，更通顺）
-    let fullZh = '';
-    try {
-      if (hasBaiduApi) {
-        fullZh = await baiduTranslate(text.trim());
-        console.log('✅ 百度翻译全文成功');
-      } else {
-        fullZh = await googleTranslate(text.trim());
-        console.log('⚠️ 使用 Google 翻译（未配置百度 API）');
-      }
-    } catch (e) {
-      console.error('❌ 全文翻译失败:', e.message);
-      // 回退到 Google
-      fullZh = await googleTranslate(text.trim());
-    }
+    const fullZh = await baiduTranslate(text.trim());
+    console.log('✅ 百度翻译全文成功');
 
     // 2. 词组级翻译（hover 高亮用）
     const groups = toWordGroups(text);
@@ -132,14 +97,11 @@ export default async function handler(req, res) {
     return res.status(200).json({ 
       fullZh, 
       segments,
-      debug: {
-        usedBaidu: hasBaiduApi,
-        groupCount: groups.length
-      }
+      source: '百度翻译'
     });
 
   } catch (e) {
-    console.error('翻译错误:', e);
+    console.error('❌ 翻译失败:', e.message);
     return res.status(500).json({ error: e.message });
   }
 }
